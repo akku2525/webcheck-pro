@@ -1,0 +1,26 @@
+# Scan output — never commit reports, they may contain sensitive recon data
+reports/
+*.html
+!templates/*.html
+results.json
+*.json
+!package.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# API keys / secrets if you ever add a .env for convenience
+.env
+.env.*
+
+# OS / editor junk
+.DS_Store
+.vscode/
+.idea/
+*.swp

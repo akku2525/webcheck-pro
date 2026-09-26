@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebCheck Pro — {{ data.domain }}</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111820; --border:#1f2b36; --green:#39ff88;
+    --green-dim:#2bb86a; --text:#d7e4ee; --muted:#7c93a3; --red:#ff5c5c;
+    --yellow:#ffd166; --blue:#5ec4ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Courier New', ui-monospace, Consolas, monospace;
+    padding:24px;
+  }
+  a{color:var(--blue); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--border);
+    flex-wrap:wrap; gap:12px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-size:22px; font-weight:bold; color:var(--green)}
+  .brand small{display:block; font-size:11px; color:var(--muted); font-weight:normal; letter-spacing:.5px}
+  .target-chip{
+    background:var(--panel); border:1px solid var(--border); padding:8px 14px;
+    border-radius:8px; font-size:13px; color:var(--muted);
+  }
+  .target-chip b{color:var(--green)}
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+    gap:16px; align-items:start;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; break-inside:avoid;
+  }
+  .card h2{
+    color:var(--green); font-size:14px; margin:0 0 12px 0; letter-spacing:.5px;
+    display:flex; align-items:center; gap:8px; text-transform:uppercase;
+  }
+  .row{
+    display:flex; justify-content:space-between; gap:10px; padding:5px 0;
+    border-bottom:1px dashed var(--border); font-size:12.5px;
+  }
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted); white-space:nowrap}
+  .row .v{color:var(--text); text-align:right; word-break:break-all}
+  .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--yellow)}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:5px; font-size:11px;
+    font-weight:bold;
+  }
+  .badge.green{background:rgba(57,255,136,.12); color:var(--green); border:1px solid var(--green-dim)}
+  .badge.red{background:rgba(255,92,92,.12); color:var(--red); border:1px solid var(--red)}
+  .badge.blue{background:rgba(94,196,255,.12); color:var(--blue); border:1px solid var(--blue)}
+  .tag-list{display:flex; flex-wrap:wrap; gap:6px}
+  .tag{
+    background:#0e1720; border:1px solid var(--border); padding:3px 9px;
+    border-radius:12px; font-size:11px; color:var(--text);
+  }
+  .score-wrap{display:flex; flex-direction:column; gap:8px}
+  .score-bar-bg{background:#0e1720; border-radius:5px; height:8px; overflow:hidden; flex:1}
+  .score-bar-fill{height:100%; background:linear-gradient(90deg,var(--green-dim),var(--green))}
+  .score-row{display:flex; align-items:center; gap:10px; font-size:12px}
+  .score-row .label{width:110px; color:var(--muted)}
+  .score-row .pct{width:40px; text-align:right; color:var(--green); font-weight:bold}
+  .mono-block{
+    background:#080c10; border:1px solid var(--border); border-radius:6px;
+    padding:10px; font-size:11px; color:var(--muted); max-height:220px;
+    overflow-y:auto; white-space:pre-wrap; word-break:break-all;
+  }
+  .big-score{
+    font-size:42px; font-weight:bold; color:var(--green); text-align:center;
+  }
+  .big-score-label{text-align:center; color:var(--muted); font-size:11px; letter-spacing:1px}
+  .footer{
+    text-align:center; margin-top:30px; padding-top:16px; border-top:1px solid var(--border);
+    color:var(--muted); font-size:12px; line-height:1.8;
+  }
+  .footer .author{color:var(--green); font-weight:bold}
+  .disclaimer{
+    background:rgba(255,209,102,.06); border:1px solid var(--yellow); color:var(--yellow);
+    border-radius:8px; padding:10px 14px; font-size:11.5px; margin-bottom:18px;
+  }
+  .sev-summary{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px}
+  .sev-pill{
+    flex:1; min-width:110px; border-radius:8px; padding:10px 14px; text-align:center;
+    border:1px solid var(--border); background:var(--panel);
+  }
+  .sev-pill .n{font-size:24px; font-weight:bold}
+  .sev-pill .l{font-size:10px; letter-spacing:1px; color:var(--muted)}
+  .sev-pill.CRITICAL .n{color:#ff4757}
+  .sev-pill.HIGH .n{color:var(--red)}
+  .sev-pill.MEDIUM .n{color:var(--yellow)}
+  .sev-pill.LOW .n{color:var(--blue)}
+  .sev-pill.INFO .n{color:var(--muted)}
+  .finding{
+    border:1px solid var(--border); border-left:4px solid var(--muted); border-radius:6px;
+    padding:10px 12px; margin-bottom:8px; font-size:12.5px; background:#0e1620;
+  }
+  .finding.CRITICAL{border-left-color:#ff4757}
+  .finding.HIGH{border-left-color:var(--red)}
+  .finding.MEDIUM{border-left-color:var(--yellow)}
+  .finding.LOW{border-left-color:var(--blue)}
+  .finding.INFO{border-left-color:var(--muted)}
+  .finding .fh{display:flex; justify-content:space-between; gap:10px; margin-bottom:4px}
+  .finding .ft{font-weight:bold; color:var(--text)}
+  .finding .fd{color:var(--muted); font-size:11.5px; line-height:1.5}
+  .finding .fc{color:var(--muted); font-size:10px}
+  .sev-tag{font-size:9px; font-weight:bold; padding:1px 7px; border-radius:4px; white-space:nowrap; height:fit-content}
+  .sev-tag.CRITICAL{background:rgba(255,71,87,.15); color:#ff4757; border:1px solid #ff4757}
+  .sev-tag.HIGH{background:rgba(255,92,92,.15); color:var(--red); border:1px solid var(--red)}
+  .sev-tag.MEDIUM{background:rgba(255,209,102,.15); color:var(--yellow); border:1px solid var(--yellow)}
+  .sev-tag.LOW{background:rgba(94,196,255,.15); color:var(--blue); border:1px solid var(--blue)}
+  .sev-tag.INFO{background:rgba(124,147,163,.15); color:var(--muted); border:1px solid var(--muted)}
+  .span-2{grid-column:span 2}
+  .findings-scroll{max-height:520px; overflow-y:auto; padding-right:4px}
+  .owasp-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px}
+  .owasp-cat{background:#0e1620; border:1px solid var(--border); border-radius:8px; padding:10px 12px}
+  .owasp-cat-head{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap}
+  .owasp-id{color:var(--green); font-weight:bold; font-size:12px}
+  .owasp-name{color:var(--text); font-size:11.5px; flex:1}
+  .owasp-finding{font-size:11px; color:var(--muted); padding:4px 0; border-top:1px dashed var(--border); display:flex; gap:6px; align-items:center}
+  .owasp-note{font-size:11px; color:var(--muted); line-height:1.5; font-style:italic}
+  .owasp-note.ok{color:var(--green); font-style:normal}
+  .screenshot-img{width:100%; border-radius:8px; border:1px solid var(--border); display:block}
+  ::-webkit-scrollbar{width:6px; height:6px}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    🛡️ WebCheck Pro
+    <small>OSINT &amp; Web Recon Dashboard — by Akash Mishra</small>
+  </div>
+  <div class="target-chip">Target: <b>{{ data.domain }}</b> &nbsp;|&nbsp; Scanned: {{ data.scan_time }}</div>
+</div>
+
+<div class="disclaimer">
+  ⚠ For authorized security testing / research on assets you own or have explicit permission to test only.
+  &nbsp;|&nbsp; Scan mode: <b>{{ 'DEEP (active)' if data.deep_scan else 'FAST' }}</b>
+</div>
+
+{% if data.findings %}
+<div class="sev-summary">
+  <div class="sev-pill CRITICAL"><div class="n">{{ data.findings.counts.CRITICAL }}</div><div class="l">CRITICAL</div></div>
+  <div class="sev-pill HIGH"><div class="n">{{ data.findings.counts.HIGH }}</div><div class="l">HIGH</div></div>
+  <div class="sev-pill MEDIUM"><div class="n">{{ data.findings.counts.MEDIUM }}</div><div class="l">MEDIUM</div></div>
+  <div class="sev-pill LOW"><div class="n">{{ data.findings.counts.LOW }}</div><div class="l">LOW</div></div>
+  <div class="sev-pill INFO"><div class="n">{{ data.findings.counts.INFO }}</div><div class="l">INFO</div></div>
+</div>
+
+<div class="card span-2" style="margin-bottom:16px; width:100%">
+  <h2>🚨 Findings &amp; Vulnerabilities ({{ data.findings.total }})</h2>
+  <div class="findings-scroll">
+    {% for f in data.findings.list %}
+    <div class="finding {{ f.severity }}">
+      <div class="fh">
+        <span class="ft">{{ f.title }}</span>
+        <span class="sev-tag {{ f.severity }}">{{ f.severity }}</span>
+      </div>
+      <div class="fd">{{ f.detail }}</div>
+      <div class="fc">Category: {{ f.category }}</div>
+    </div>
+    {% else %}
+    <div class="row"><span class="v ok">No issues detected 🎉</span></div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if data.owasp %}
+<div class="card span-2" style="margin-bottom:16px; width:100%">
+  <h2>🧩 OWASP Top 10 (2021) Mapping</h2>
+  <div class="owasp-grid">
+    {% for cat in data.owasp %}
+    <div class="owasp-cat">
+      <div class="owasp-cat-head">
+        <span class="owasp-id">{{ cat.id }}</span>
+        <span class="owasp-name">{{ cat.name }}</span>
+        {% if cat.findings %}
+        <span class="badge red">{{ cat.findings|length }} FINDING{{ 'S' if cat.findings|length != 1 else '' }}</span>
+        {% else %}
+        <span class="badge green">CLEAR</span>
+        {% endif %}
+      </div>
+      {% if cat.findings %}
+        {% for f in cat.findings %}
+        <div class="owasp-finding"><span class="sev-tag {{ f.severity }}">{{ f.severity }}</span> {{ f.title }}</div>
+        {% endfor %}
+      {% elif cat.note %}
+        <div class="owasp-note">ℹ {{ cat.note }}</div>
+      {% else %}
+        <div class="owasp-note ok">No issues found in this category.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid">
+
+  <!-- Quality Score -->
+  <div class="card">
+    <h2>📊 Quality Score</h2>
+    <div class="big-score">{{ data.quality_score }}%</div>
+    <div class="big-score-label">OVERALL SECURITY POSTURE</div>
+    <div style="margin-top:14px" class="score-wrap">
+      <div class="score-row">
+        <span class="label">Headers</span>
+        <div class="score-bar-bg"><div class="score-bar-fill" style="width:{{ data.security_headers.score if data.security_headers.score is defined else 0 }}%"></div></div>
+        <span class="pct">{{ data.security_headers.score if data.security_headers.score is defined else 0 }}%</span>
+      </div>
+      <div class="score-row">
+        <span class="label">HSTS</span>
+        <span class="badge {{ 'green' if data.hsts.enabled else 'red' }}">{{ 'ENABLED' if data.hsts.enabled else 'DISABLED' }}</span>
+      </div>
+      <div class="score-row">
+        <span class="label">DNSSEC</span>
+        <span class="badge {{ 'green' if data.dnssec.enabled else 'red' }}">{{ 'ENABLED' if data.dnssec.enabled else 'DISABLED' }}</span>
+      </div>
+      <div class="score-row">
+        <span class="label">WAF</span>
+        <span class="badge {{ 'green' if data.waf.detected and data.waf.detected != ['None detected'] else 'red' }}">
+          {{ (data.waf.detected|join(', ')) if data.waf.detected else 'NONE' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Info / Geo -->
+  <div class="card">
+    <h2>🌍 Server Location &amp; Info</h2>
+    {% if data.geoip and not data.geoip.error %}
+    <div class="row"><span class="k">IP Address</span><span class="v">{{ data.ip }}</span></div>
+    <div class="row"><span class="k">City</span><span class="v">{{ data.geoip.city }}, {{ data.geoip.regionName }}</span></div>
+    <div class="row"><span class="k">Country</span><span class="v">{{ data.geoip.country }} ({{ data.geoip.countryCode }})</span></div>
+    <div class="row"><span class="k">Timezone</span><span class="v">{{ data.geoip.timezone }}</span></div>
+    <div class="row"><span class="k">ISP</span><span class="v">{{ data.geoip.isp }}</span></div>
+    <div class="row"><span class="k">Organization</span><span class="v">{{ data.geoip.org }}</span></div>
+    <div class="row"><span class="k">ASN</span><span class="v">{{ data.geoip.as }}</span></div>
+    {% else %}
+    <div class="row"><span class="k">Status</span><span class="v bad">{{ data.geoip.error if data.geoip else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- SSL Certificate -->
+  <div class="card">
+    <h2>🔒 SSL Certificate</h2>
+    {% if data.ssl and not data.ssl.error %}
+    <div class="row"><span class="k">Subject</span><span class="v">{{ data.ssl.subject }}</span></div>
+    <div class="row"><span class="k">Issuer</span><span class="v">{{ data.ssl.issuer }}</span></div>
+    <div class="row"><span class="k">Valid From</span><span class="v">{{ data.ssl.not_before }}</span></div>
+    <div class="row"><span class="k">Valid Until</span><span class="v {{ 'bad' if data.ssl.expired else '' }}">{{ data.ssl.not_after }}</span></div>
+    <div class="row"><span class="k">Days Remaining</span><span class="v {{ 'bad' if data.ssl.days_remaining < 14 else 'ok' }}">{{ data.ssl.days_remaining }}</span></div>
+    <div class="row"><span class="k">Signature Algo</span><span class="v">{{ data.ssl.signature_algorithm }}</span></div>
+    <div class="row"><span class="k">Serial</span><span class="v">{{ data.ssl.serial_number }}</span></div>
+    <div class="row"><span class="k">SHA-256 FP</span><span class="v" style="font-size:10px">{{ data.ssl.fingerprint_sha256 }}</span></div>
+    {% if data.ssl.subject_alt_names %}
+    <div style="margin-top:8px" class="tag-list">
+      {% for san in data.ssl.subject_alt_names[:8] %}<span class="tag">{{ san }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="k">Status</span><span class="v bad">{{ data.ssl.error if data.ssl else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- TLS Protocol Support -->
+  <div class="card">
+    <h2>🔐 TLS Protocol Support</h2>
+    {% if data.tls_protocols and not data.tls_protocols.error %}
+      {% for proto, supported in data.tls_protocols.items() %}
+      <div class="row">
+        <span class="k">{{ proto }}</span>
+        <span class="badge {{ 'red' if (supported and (proto == 'TLSv1.0' or proto == 'TLSv1.1')) else ('green' if supported else 'red') }}">
+          {{ 'SUPPORTED' if supported else 'CLOSED' }}
+        </span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v bad">{{ data.tls_protocols.error if data.tls_protocols else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Domain WHOIS -->
+  <div class="card">
+    <h2>📄 Domain WHOIS</h2>
+    {% if data.whois and not data.whois.error %}
+    <div class="row"><span class="k">Domain</span><span class="v">{{ data.whois.domain_name }}</span></div>
+    <div class="row"><span class="k">Registrar</span><span class="v">{{ data.whois.registrar }}</span></div>
+    <div class="row"><span class="k">Created</span><span class="v">{{ data.whois.creation_date }}</span></div>
+    <div class="row"><span class="k">Updated</span><span class="v">{{ data.whois.updated_date }}</span></div>
+    <div class="row"><span class="k">Expires</span><span class="v">{{ data.whois.expiration_date }}</span></div>
+    <div class="row"><span class="k">Org</span><span class="v">{{ data.whois.org }}</span></div>
+    <div class="row"><span class="k">Country</span><span class="v">{{ data.whois.country }}</span></div>
+    {% else %}
+    <div class="row"><span class="k">Status</span><span class="v bad">{{ data.whois.error if data.whois else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- DNS Records -->
+  <div class="card">
+    <h2>🗂️ DNS Records</h2>
+    {% if data.dns and not data.dns.error %}
+      {% for rtype, values in data.dns.items() %}
+        {% if values %}
+        <div class="row"><span class="k">{{ rtype }}</span><span class="v">{{ values|join(', ') }}</span></div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v bad">{{ data.dns.error if data.dns else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- DNSSEC -->
+  <div class="card">
+    <h2>🔑 DNSSEC</h2>
+    {% if data.dnssec %}
+    <div class="row"><span class="k">Status</span>
+      <span class="badge {{ 'green' if data.dnssec.enabled else 'red' }}">{{ 'ENABLED' if data.dnssec.enabled else 'NOT ENABLED' }}</span>
+    </div>
+    {% if data.dnssec.keys is defined %}<div class="row"><span class="k">DNSKEY count</span><span class="v">{{ data.dnssec.keys }}</span></div>{% endif %}
+    {% endif %}
+  </div>
+
+  <!-- HSTS -->
+  <div class="card">
+    <h2>🛡️ HSTS Check</h2>
+    {% if data.hsts.enabled %}
+    <div class="row"><span class="k">HSTS Enabled</span><span class="badge green">YES</span></div>
+    <div class="row"><span class="k">max-age</span><span class="v">{{ data.hsts.max_age }}</span></div>
+    <div class="row"><span class="k">includeSubDomains</span><span class="v">{{ data.hsts.includeSubDomains }}</span></div>
+    <div class="row"><span class="k">preload</span><span class="v">{{ data.hsts.preload }}</span></div>
+    {% else %}
+    <div class="row"><span class="k">HSTS Enabled</span><span class="badge red">NO</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Security Headers -->
+  <div class="card">
+    <h2>🧱 HTTP Security Headers</h2>
+    {% if data.security_headers.headers %}
+      {% for h, info in data.security_headers.headers.items() %}
+      <div class="row">
+        <span class="k">{{ h }}</span>
+        <span class="badge {{ 'green' if info.present else 'red' }}">{{ 'YES' if info.present else 'NO' }}</span>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Firewall / WAF -->
+  <div class="card">
+    <h2>🧯 Firewall / WAF Detection</h2>
+    <div class="tag-list">
+      {% for w in data.waf.detected %}<span class="tag">{{ w }}</span>{% endfor %}
+    </div>
+    {% if data.waf.raw_server_header %}
+    <div class="row" style="margin-top:8px"><span class="k">Server header</span><span class="v">{{ data.waf.raw_server_header }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="card">
+    <h2>⚙️ Tech Stack</h2>
+    <div class="tag-list">
+      {% for t in data.tech_stack %}<span class="tag">{{ t }}</span>{% endfor %}
+    </div>
+  </div>
+
+  <!-- Cookies -->
+  <div class="card">
+    <h2>🍪 Cookies</h2>
+    {% if data.http.cookies %}
+      {% for c in data.http.cookies %}
+      <div class="row">
+        <span class="k">{{ c.name }}</span>
+        <span class="v">{{ 'Secure' if c.secure else 'Not Secure' }}{{ ', HttpOnly' if c.httponly else '' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v">No cookies set</span></div>
+    {% endif %}
+  </div>
+
+  <!-- HTTP Response -->
+  <div class="card">
+    <h2>📡 HTTP Response</h2>
+    {% if data.http and not data.http.error %}
+    <div class="row"><span class="k">Status Code</span><span class="v {{ 'ok' if data.http.status_code < 400 else 'bad' }}">{{ data.http.status_code }}</span></div>
+    <div class="row"><span class="k">Final URL</span><span class="v">{{ data.http.final_url }}</span></div>
+    <div class="row"><span class="k">Response Time</span><span class="v">{{ data.http.elapsed_ms }} ms</span></div>
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.http.error if data.http else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Raw Headers -->
+  <div class="card">
+    <h2>📋 Raw HTTP Headers</h2>
+    <div class="mono-block">{% if data.http.headers %}{% for k, v in data.http.headers.items() %}{{ k }}: {{ v }}
+{% endfor %}{% else %}unavailable{% endif %}</div>
+  </div>
+
+  <!-- Subdomains -->
+  <div class="card" style="grid-column: span 1;">
+    <h2>🌐 Discovered Subdomains (crt.sh)</h2>
+    {% if data.subdomains is iterable and data.subdomains is not string and data.subdomains|length > 0 and not (data.subdomains is mapping) %}
+    <div class="mono-block">{% for s in data.subdomains %}{{ s }}
+{% endfor %}</div>
+    {% else %}
+    <div class="row"><span class="v">{{ data.subdomains.error if data.subdomains is mapping else 'None found' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Port Scan -->
+  <div class="card">
+    <h2>🔓 Open Ports</h2>
+    {% if data.port_scan is iterable and data.port_scan is not mapping and data.port_scan|length > 0 %}
+      {% for p in data.port_scan %}
+      <div class="row"><span class="k">{{ p.port }}</span><span class="v ok">{{ p.service }}</span></div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v">No common ports found open (or scan unavailable)</span></div>
+    {% endif %}
+  </div>
+
+  <!-- robots.txt -->
+  <div class="card">
+    <h2>🤖 robots.txt</h2>
+    <div class="row"><span class="k">Present</span>
+      <span class="badge {{ 'green' if data.robots_txt.present else 'red' }}">{{ 'YES' if data.robots_txt.present else 'NO' }}</span>
+    </div>
+    {% if data.robots_txt.present %}
+    <div class="mono-block">{{ data.robots_txt.content }}</div>
+    {% endif %}
+  </div>
+
+  <!-- security.txt -->
+  <div class="card">
+    <h2>📝 security.txt</h2>
+    <div class="row"><span class="k">Present</span>
+      <span class="badge {{ 'green' if data.security_txt.present else 'red' }}">{{ 'YES' if data.security_txt.present else 'NO' }}</span>
+    </div>
+    {% if data.security_txt.present %}
+    <div class="mono-block">{{ data.security_txt.content }}</div>
+    {% endif %}
+  </div>
+
+  <!-- CORS -->
+  <div class="card">
+    <h2>🔀 CORS Policy</h2>
+    {% if data.cors and not data.cors.error %}
+    <div class="row"><span class="k">Allow-Origin</span><span class="v">{{ data.cors.access_control_allow_origin }}</span></div>
+    <div class="row"><span class="k">Allow-Credentials</span><span class="v">{{ data.cors.access_control_allow_credentials }}</span></div>
+    <div class="row"><span class="k">Misconfigured</span>
+      <span class="badge {{ 'red' if data.cors.misconfigured else 'green' }}">{{ 'YES' if data.cors.misconfigured else 'NO' }}</span>
+    </div>
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.cors.error if data.cors else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- HTTP Methods -->
+  <div class="card">
+    <h2>🔧 HTTP Methods (OPTIONS)</h2>
+    {% if data.http_methods and not data.http_methods.error %}
+    <div class="tag-list">
+      {% for m in data.http_methods.allowed_methods %}<span class="tag">{{ m }}</span>{% endfor %}
+    </div>
+    {% if data.http_methods.risky_methods %}
+    <div class="row" style="margin-top:8px"><span class="k">Risky</span><span class="v bad">{{ data.http_methods.risky_methods|join(', ') }}</span></div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.http_methods.error if data.http_methods else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Clickjacking -->
+  <div class="card">
+    <h2>🖼️ Clickjacking Protection</h2>
+    {% if data.clickjacking and not data.clickjacking.error %}
+    <div class="row"><span class="k">Protected</span>
+      <span class="badge {{ 'green' if data.clickjacking.protected else 'red' }}">{{ 'YES' if data.clickjacking.protected else 'NO' }}</span>
+    </div>
+    <div class="row"><span class="k">X-Frame-Options</span><span class="v">{{ data.clickjacking.x_frame_options }}</span></div>
+    <div class="row"><span class="k">CSP frame-ancestors</span><span class="v">{{ data.clickjacking.csp_frame_ancestors }}</span></div>
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.clickjacking.error if data.clickjacking else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Subdomain Takeover -->
+  <div class="card">
+    <h2>🎯 Subdomain Takeover Risk</h2>
+    {% if data.subdomain_takeover and not data.subdomain_takeover.error %}
+    <div class="row"><span class="k">Checked</span><span class="v">{{ data.subdomain_takeover.checked }}</span></div>
+    {% if data.subdomain_takeover.suspicious %}
+      {% for s in data.subdomain_takeover.suspicious %}
+      <div class="row"><span class="k bad">{{ s.subdomain }}</span><span class="v bad">{{ s.service }}</span></div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v ok">No takeover risks found</span></div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v">{{ data.subdomain_takeover.error if data.subdomain_takeover else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  {% if data.deep_scan %}
+  <!-- Zone Transfer -->
+  <div class="card">
+    <h2>📡 DNS Zone Transfer (AXFR)</h2>
+    {% if data.zone_transfer and not data.zone_transfer.error %}
+      {% for ns, res in data.zone_transfer.items() %}
+      <div class="row"><span class="k">{{ ns }}</span>
+        <span class="badge {{ 'red' if res.vulnerable else 'green' }}">{{ 'VULNERABLE' if res.vulnerable else 'PROTECTED' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="row"><span class="v">{{ data.zone_transfer.error if data.zone_transfer else 'no nameservers tested' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Open Redirect -->
+  <div class="card">
+    <h2>↪️ Open Redirect Probe</h2>
+    {% if data.open_redirect and not data.open_redirect.error %}
+    <div class="row"><span class="k">Tested params</span><span class="v">{{ data.open_redirect.tested_params|join(', ') }}</span></div>
+    {% if data.open_redirect.vulnerable_params %}
+      {% for f in data.open_redirect.vulnerable_params %}
+      <div class="row"><span class="k bad">{{ f.param }}</span><span class="v bad">{{ f.status_code }}</span></div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v ok">No open redirects found</span></div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v">{{ data.open_redirect.error if data.open_redirect else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Banner Grab -->
+  <div class="card">
+    <h2>🏷️ Service Banners</h2>
+    {% if data.banners %}
+      {% for port, banner in data.banners.items() %}
+      <div class="row"><span class="k">Port {{ port }}</span><span class="v" style="font-size:10.5px">{{ banner }}</span></div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v">No banners captured</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Subdomain Bruteforce -->
+  <div class="card">
+    <h2>🧱 Subdomain Bruteforce</h2>
+    {% if data.subdomain_bruteforce is iterable and data.subdomain_bruteforce is not string and not (data.subdomain_bruteforce is mapping) and data.subdomain_bruteforce|length > 0 %}
+    <div class="mono-block">{% for s in data.subdomain_bruteforce %}{{ s }}
+{% endfor %}</div>
+    {% else %}
+    <div class="row"><span class="v">None found from wordlist</span></div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Email Harvest -->
+  <div class="card">
+    <h2>📧 Exposed Email Addresses</h2>
+    {% if data.email_harvest and data.email_harvest|length > 0 %}
+    <div class="tag-list">{% for e in data.email_harvest %}<span class="tag">{{ e }}</span>{% endfor %}</div>
+    {% else %}
+    <div class="row"><span class="v">None found on page</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Screenshot -->
+  {% if data.screenshot %}
+  <div class="card span-2">
+    <h2>📸 Screenshot</h2>
+    {% if data.screenshot.base64_png %}
+    <img class="screenshot-img" src="data:image/png;base64,{{ data.screenshot.base64_png }}" alt="Screenshot of {{ data.domain }}">
+    <div class="row" style="margin-top:8px"><span class="k">Captured with</span><span class="v">{{ data.screenshot.browser_used }}</span></div>
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.screenshot.error }}</span></div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Sensitive Path Exposure -->
+  <div class="card">
+    <h2>🗝️ Sensitive File Exposure</h2>
+    {% if data.sensitive_paths and not data.sensitive_paths.error %}
+    <div class="row"><span class="k">Paths tested</span><span class="v">{{ data.sensitive_paths.tested }}</span></div>
+    {% if data.sensitive_paths.exposed %}
+      {% for e in data.sensitive_paths.exposed %}
+      <div class="row"><span class="k bad">{{ e.path }}</span><span class="v bad">{{ e.status_code }} ({{ e.size }}B)</span></div>
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v ok">No sensitive files exposed</span></div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.sensitive_paths.error if data.sensitive_paths else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Subresource Integrity -->
+  <div class="card">
+    <h2>🧷 Subresource Integrity (SRI)</h2>
+    {% if data.sri and not data.sri.error %}
+    <div class="row"><span class="k">External scripts checked</span><span class="v">{{ data.sri.scripts_checked }}</span></div>
+    {% if data.sri.missing_sri %}
+      <div class="mono-block">{% for s in data.sri.missing_sri %}{{ s }}
+{% endfor %}</div>
+    {% else %}
+      <div class="row"><span class="v ok">All cross-origin scripts protected (or none found)</span></div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v">{{ data.sri.error if data.sri else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- CVE / Vulnerable Components -->
+  <div class="card span-2">
+    <h2>🐛 Vulnerable Component / CVE Report</h2>
+    {% if data.cve_report and not data.cve_report.error and data.cve_report|length > 0 %}
+      {% for name, info in data.cve_report.items() %}
+      <div class="row">
+        <span class="k">{{ name }} {{ info.version }}</span>
+        <span class="v">
+          {% if info.vulnerabilities %}
+            <span class="badge red">{{ info.vulnerabilities|length }} CVE(S)</span>
+          {% elif info.source == 'osv.dev' %}
+            <span class="badge green">CLEAN (OSV.dev)</span>
+          {% else %}
+            <span class="badge blue">MANUAL CHECK</span>
+          {% endif %}
+        </span>
+      </div>
+      {% if info.vulnerabilities %}
+        {% for v in info.vulnerabilities[:5] %}
+        <div class="fd" style="padding-left:10px; margin-bottom:6px">• <b>{{ v.cve }}</b> — {{ v.summary }}</div>
+        {% endfor %}
+      {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="row"><span class="v">{{ data.cve_report.error if (data.cve_report and data.cve_report.error) else 'No fingerprintable component versions found' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Shodan -->
+  <div class="card">
+    <h2>🛰️ Shodan Intelligence</h2>
+    {% if data.shodan and data.shodan.skipped %}
+    <div class="row"><span class="v">{{ data.shodan.skipped }}</span></div>
+    {% elif data.shodan and not data.shodan.error %}
+    <div class="row"><span class="k">Org / ISP</span><span class="v">{{ data.shodan.org }} / {{ data.shodan.isp }}</span></div>
+    <div class="row"><span class="k">OS</span><span class="v">{{ data.shodan.os or 'Unknown' }}</span></div>
+    <div class="row"><span class="k">Indexed Ports</span><span class="v">{{ data.shodan.ports|join(', ') }}</span></div>
+    <div class="row"><span class="k">Known CVEs</span>
+      <span class="badge {{ 'red' if data.shodan.vulns else 'green' }}">{{ data.shodan.vulns|length if data.shodan.vulns else 0 }}</span>
+    </div>
+    {% if data.shodan.vulns %}
+    <div class="mono-block">{{ data.shodan.vulns|join(', ') }}</div>
+    {% endif %}
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.shodan.error if data.shodan else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Censys -->
+  <div class="card">
+    <h2>🔭 Censys Intelligence</h2>
+    {% if data.censys and data.censys.skipped %}
+    <div class="row"><span class="v">{{ data.censys.skipped }}</span></div>
+    {% elif data.censys and not data.censys.error %}
+    <div class="row"><span class="k">ASN / Org</span><span class="v">{{ data.censys.asn }} / {{ data.censys.autonomous_system }}</span></div>
+    <div class="row"><span class="k">OS</span><span class="v">{{ data.censys.os or 'Unknown' }}</span></div>
+    <div class="row"><span class="k">Location</span><span class="v">{{ data.censys.location }}</span></div>
+    <div class="row"><span class="k">Services Indexed</span><span class="v">{{ data.censys.services|length }}</span></div>
+    {% else %}
+    <div class="row"><span class="v bad">{{ data.censys.error if data.censys else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Traceroute -->
+  <div class="card" style="grid-column: span 2;">
+    <h2>🛰️ Traceroute</h2>
+    {% if data.traceroute is iterable and data.traceroute is not string and not (data.traceroute is mapping) and data.traceroute|length > 0 %}
+    <div class="mono-block">{% for hop in data.traceroute %}{{ hop }}
+{% endfor %}</div>
+    {% else %}
+    <div class="row"><span class="v">{{ data.traceroute.error if data.traceroute is mapping else 'unavailable' }}</span></div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="footer">
+  <div>🛡️ <span class="author">WebCheck Pro v1.0</span> — Built &amp; crafted by <span class="author">Akash Mishra</span></div>
+  <div>An all-in-one OSINT &amp; web recon dashboard for Kali Linux security professionals.</div>
+  <div>Use responsibly. Only scan systems you own or are explicitly authorized to test.</div>
+</div>
+
+</body>
+</html>
