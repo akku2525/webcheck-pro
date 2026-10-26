@@ -104,7 +104,7 @@ is a dependency-light Python CLI you fully own and can extend.
 ## 📦 Installation (Kali / Debian Linux)
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/webcheck-pro.git
+git clone https://github.com/akku2525/webcheck-pro.git
 cd webcheck-pro
 chmod +x install.sh
 ./install.sh
